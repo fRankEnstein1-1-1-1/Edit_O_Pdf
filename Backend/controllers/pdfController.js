@@ -219,73 +219,73 @@ exports.saveAnnotations = async (req, res) => {
 
 // ─── EXPORT PDF ────────────────────────────────────────────────────────────
 exports.exportPdf = async (req, res) => {
-    try {
-        const doc = await Document.findById(req.params.id);
-        if (!doc) return res.status(404).json({ error: "Not found" });
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: "Not found" });
 
-        const bucket = getBucket();
-        const pdfBuffer = await getPdfBuffer(bucket, doc.fileId);
+    const bucket = getBucket();
+    const pdfBuffer = await getPdfBuffer(bucket, doc.fileId);
+    const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-        const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
-        const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const annotationsData = doc.annotations || {};
+    const entries = annotationsData instanceof Map
+      ? Array.from(annotationsData.entries())
+      : Object.entries(annotationsData);
 
-        const annotationsData = doc.annotations || {};
-        const entries = annotationsData instanceof Map 
-            ? Array.from(annotationsData.entries()) 
-            : Object.entries(annotationsData);
+  for (const [pageIndexStr, annotations] of entries) {
+  const pageIndex = parseInt(pageIndexStr);
+  const page = pdfDoc.getPage(pageIndex);
+  const { width: pdfWidth, height: pdfHeight } = page.getSize();
 
-        for (const [pageIndexStr, annotations] of entries) {
-            const pageIndex = parseInt(pageIndexStr, 10);
-            if (isNaN(pageIndex)) continue;
-
-            let page;
-            try {
-                page = pdfDoc.getPage(pageIndex);
-            } catch (e) {
-                continue;
-            }
-
-            const { width: pageWidth, height: pageHeight } = page.getSize();
-
-            // White boxes first
-            for (const ann of annotations || []) {
-                if (ann.type === "whitebox") {
-                    page.drawRectangle({
-                        x: ann.x * pageWidth,
-                        y: pageHeight - (ann.y * pageHeight) - (ann.height * pageHeight),
-                        width: ann.width * pageWidth,
-                        height: ann.height * pageHeight,
-                        color: rgb(1, 1, 1),
-                    });
-                }
-            }
-
-            // Text with better baseline
-            for (const ann of annotations || []) {
-                if (ann.type === "text" && ann.content?.trim()) {
-                    const [r, g, b] = hexToRgb(ann.color || "#000000");
-
-                    page.drawText(ann.content, {
-                        x: ann.x * pageWidth,
-                        y: pageHeight - (ann.y * pageHeight) - (ann.fontSize * 0.75),   // ← This is key
-                        size: ann.fontSize || 16,
-                        font: helvetica,
-                        color: rgb(r, g, b),
-                    });
-                }
-            }
-        }
-
-        const finalBuffer = await pdfDoc.save();
-
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename="edited-${doc.originalName || 'document.pdf'}"`);
-        res.send(Buffer.from(finalBuffer));
-
-    } catch (err) {
-        console.error("Export error:", err);
-        res.status(500).json({ error: err.message });
+  // White boxes first
+  for (const ann of annotations || []) {
+    if (ann.type === "whitebox") {
+      page.drawRectangle({
+        x: ann.x,
+        y: pdfHeight - ann.y - ann.height,   // y-flip
+        width: ann.width,
+        height: ann.height,
+        color: rgb(1, 1, 1),
+      });
     }
+  }
+
+  // Text & Images
+  for (const ann of annotations || []) {
+    if (ann.type === "text") {
+      const [r, g, b] = hexToRgb(ann.color || "#000000");
+      page.drawText(ann.content, {
+        x: ann.x,
+        y: pdfHeight - ann.y - (ann.fontSize * 0.9), // baseline fix
+        size: ann.fontSize,
+        font,
+        color: rgb(r, g, b),
+      });
+    }
+
+    if (ann.type === "image") {
+      const imageBytes = Buffer.from(ann.imageData, "base64");
+      const embedded = await pdfDoc.embedPng(imageBytes);
+
+      page.drawImage(embedded, {
+        x: ann.x,
+        y: pdfHeight - ann.y - ann.height,
+        width: ann.width,
+        height: ann.height,
+      });
+    }
+  }
+}
+
+    const finalBuffer = await pdfDoc.save();
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="edited-${doc.originalName || 'document.pdf'}"`);
+    res.send(Buffer.from(finalBuffer));
+  } catch (err) {
+    console.error("Export error:", err);
+    res.status(500).json({ error: err.message });
+  }
 };
 // ─── HELPER: Hex to RGB ────────────────────────────────────────────────────
 const hexToRgb = (hex) => {

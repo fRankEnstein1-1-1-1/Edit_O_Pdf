@@ -10,6 +10,7 @@ export default function EditorCanvas({ id, document: pdfDocument, currentPage, a
   const canvasEl = useRef(null);
   const fabricRef = useRef(null);
   const containerRef = useRef(null);
+  const scaleRef = useRef(1);
 
   const [saving, setSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,16 +21,15 @@ export default function EditorCanvas({ id, document: pdfDocument, currentPage, a
     activeToolRef.current = activeTool;
   }, [activeTool]);
 
-  const calculateOptimalScale = useCallback((pdfPage) => {
+ const calculateOptimalScale = useCallback((pdfPage) => {
     if (!containerRef.current) return 1.2;
-
-    const containerWidth = containerRef.current.clientWidth - 120;
+    const containerWidth = containerRef.current.clientWidth - 32;
     const viewportAt1 = pdfPage.getViewport({ scale: 1 });
     const scaleToFit = containerWidth / viewportAt1.width;
-    return Math.min(Math.max(scaleToFit, 0.7), 2.2);
-  }, []);
+    return Math.min(Math.max(scaleToFit, 0.5), 2.0);
+}, []);
 
- const loadPage = async () => {
+const loadPage = async () => {
   if (!pdfDocument || currentPage === undefined || !canvasEl.current) return;
 
   setIsLoading(true);
@@ -43,24 +43,32 @@ export default function EditorCanvas({ id, document: pdfDocument, currentPage, a
     const page = await pdf.getPage(currentPage + 1);
 
     // ===============================
-    // 🧠 ORIGINAL PDF DIMENSIONS (IMPORTANT)
+    // 📐 ORIGINAL PDF SIZE
     // ===============================
     const originalViewport = page.getViewport({ scale: 1 });
-    const originalWidth = originalViewport.width;
-    const originalHeight = originalViewport.height;
 
-    // Save for export scaling
+    // ===============================
+    // 🎯 SCALE (VERY IMPORTANT)
+    // ===============================
+    const scale = calculateOptimalScale(page);
+    scaleRef.current = scale;
+
+    const viewport = page.getViewport({ scale });
+
+    // ===============================
+    // 🧠 STORE DIMENSIONS (FINAL CLEAN VERSION)
+    // ===============================
     window.currentPageOriginalSize = {
-      width: originalWidth,
-      height: originalHeight,
+      pdfWidth: originalViewport.width,
+      pdfHeight: originalViewport.height,
+      canvasWidth: viewport.width,
+      canvasHeight: viewport.height,
+      ratio: originalViewport.width / viewport.width, // 🔥 IMPORTANT
     };
 
     // ===============================
-    // 🎯 DISPLAY SCALE
+    // 🖼 RENDER PDF → TEMP CANVAS
     // ===============================
-    const scale = calculateOptimalScale(page);
-    const viewport = page.getViewport({ scale });
-
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = viewport.width;
     tempCanvas.height = viewport.height;
@@ -69,7 +77,7 @@ export default function EditorCanvas({ id, document: pdfDocument, currentPage, a
     await page.render({ canvasContext: ctx, viewport }).promise;
 
     // ===============================
-    // ♻️ CLEAN OLD CANVAS
+    // ♻️ CLEAN OLD FABRIC
     // ===============================
     if (fabricRef.current) {
       fabricRef.current.dispose();
@@ -87,25 +95,40 @@ export default function EditorCanvas({ id, document: pdfDocument, currentPage, a
     fabricRef.current = fabricCanvas;
 
     // ===============================
-    // 🖼 BACKGROUND IMAGE (FIXED + SAFE)
+    // 🖼 BACKGROUND IMAGE (FIXED)
     // ===============================
-    const dataUrl = tempCanvas.toDataURL("image/png");
+ // Inside loadPage(), after rendering the tempCanvas
 
-    const bgImage = await FabricImage.fromURL(dataUrl);
-    bgImage.set({
-      left: 0,
-      top: 0,
-      originX: "left",
-      originY: "top",
-      scaleX: 1,
-      scaleY: 1,
-    });
+const dataUrl = tempCanvas.toDataURL("image/png");
+const bgImage = await FabricImage.fromURL(dataUrl);
 
-    fabricCanvas.backgroundImage = bgImage;
-    fabricCanvas.renderAll();
+bgImage.set({
+  left: 0,
+  top: 0,
+  originX: "left",
+  originY: "top",
+  selectable: false,
+  evented: false,
+});
 
+fabricCanvas.backgroundImage = bgImage;
+
+// 🔥 CRITICAL ALIGNMENT FIXES
+fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+fabricCanvas.absolutePan({ x: 0, y: 0 });
+
+fabricCanvas.renderAll();
+
+console.log("Canvas initialized with width:", viewport.width);
+
+// Store exact sizes
+window.currentPageOriginalSize = {
+  pdfWidth: originalViewport.width,
+  pdfHeight: originalViewport.height,
+  canvasWidth: viewport.width,
+};
     // ===============================
-    // 🖱 TOOL HANDLER (FIXED UX)
+    // 🖱 TOOL HANDLER
     // ===============================
     fabricCanvas.on("mouse:down", (opt) => {
       const tool = activeToolRef.current;
@@ -115,7 +138,7 @@ export default function EditorCanvas({ id, document: pdfDocument, currentPage, a
 
       const pointer = fabricCanvas.getScenePoint(opt.e);
 
-      // ✏️ TEXT
+      // TEXT
       if (tool === "text") {
         const text = new IText("Type here...", {
           left: pointer.x,
@@ -126,13 +149,13 @@ export default function EditorCanvas({ id, document: pdfDocument, currentPage, a
         });
 
         fabricCanvas.add(text);
-        text.bringToFront(); // 🔥 ensures visibility over whitebox
+        text.bringToFront();
         fabricCanvas.setActiveObject(text);
         text.enterEditing();
         fabricCanvas.renderAll();
       }
 
-      // ⬜ WHITEBOX
+      // WHITEBOX
       if (tool === "whitebox" && !opt.target) {
         const rect = new Rect({
           left: pointer.x,
@@ -215,52 +238,56 @@ const handleSave = async () => {
 
   try {
     const canvas = fabricRef.current;
-    const objects = canvas.getObjects();
+    const orig = window.currentPageOriginalSize;
+    if (!orig?.pdfWidth) return alert("Reload page");
 
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
+    const ratio = orig.pdfWidth / canvas.getWidth();
 
-    const annotations = objects
-      .map((obj) => {
-        if (!obj) return null;
+    // Use the value that worked best for you
+    const offsetX = -58;   
+    const offsetY = -17;
 
-        const scaledW = obj.width * (obj.scaleX || 1);
-        const scaledH = obj.height * (obj.scaleY || 1);
+    const annotations = canvas.getObjects().map((obj) => {
+      if (!obj) return null;
 
-        const base = {
-          x: Number((obj.left / canvasWidth).toFixed(6)),
-          y: Number((obj.top / canvasHeight).toFixed(6)),
-          width: Number((scaledW / canvasWidth).toFixed(6)),
-          height: Number((scaledH / canvasHeight).toFixed(6)),
+      let left = Math.max(0, (obj.left + offsetX) * ratio);
+      let top = Math.max(0, (obj.top + offsetY) * ratio);
+
+      const width = (obj.width * (obj.scaleX || 1)) * ratio;
+      const height = (obj.height * (obj.scaleY || 1)) * ratio;
+
+      if (obj.type === "i-text" || obj.type === "textbox") {
+        return {
+          type: "text",
+          x: left,
+          y: top,
+          content: obj.text,
+          fontSize: obj.fontSize * ratio,
+          color: obj.fill || "#000000"
         };
+      }
 
-        if (obj.type === "i-text" || obj.type === "textbox") {
-          return {
-            ...base,
-            type: "text",
-            content: obj.text?.trim() || "Type here...",
-            fontSize: Number(obj.fontSize || 18),
-            color: obj.fill || "#000000",
-          };
-        }
+      if (obj.type === "rect") {
+        return {
+          type: "whitebox",
+          x: left,
+          y: top,
+          width: width,
+          height: height
+        };
+      }
 
-        if (obj.type === "rect") {
-          return { ...base, type: "whitebox" };
-        }
-        return null;
-      })
-      .filter(Boolean);
+      return null;
+    }).filter(Boolean);
 
     await saveAnnotations(id, currentPage, annotations);
-    alert("✅ Saved!");
-  } catch (err) {
-    console.error(err);
-    alert("Save failed");
+    alert("Saved with offsetX=" + offsetX);
+  } catch (e) {
+    console.error(e);
   } finally {
     setSaving(false);
   }
 };
-
   return (
     <div style={styles.wrapper}>
       <input
