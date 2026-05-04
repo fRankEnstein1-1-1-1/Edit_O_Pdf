@@ -1,0 +1,360 @@
+import { useEffect, useRef, useState, useCallback } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+import { Canvas, IText, Rect, FabricImage } from "fabric";
+import { saveAnnotations } from "../api/pdfApi";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+
+export default function EditorCanvas({ id, document: pdfDocument, currentPage, activeTool }) {
+  const canvasEl = useRef(null);
+  const fabricRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const [saving, setSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const activeToolRef = useRef(activeTool);
+
+  useEffect(() => {
+    activeToolRef.current = activeTool;
+  }, [activeTool]);
+
+  const calculateOptimalScale = useCallback((pdfPage) => {
+    if (!containerRef.current) return 1.2;
+
+    const containerWidth = containerRef.current.clientWidth - 120;
+    const viewportAt1 = pdfPage.getViewport({ scale: 1 });
+    const scaleToFit = containerWidth / viewportAt1.width;
+    return Math.min(Math.max(scaleToFit, 0.7), 2.2);
+  }, []);
+
+ const loadPage = async () => {
+  if (!pdfDocument || currentPage === undefined || !canvasEl.current) return;
+
+  setIsLoading(true);
+
+  try {
+    const response = await fetch(`http://localhost:5000/api/pdf/${id}/file`);
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(currentPage + 1);
+
+    // ===============================
+    // 🧠 ORIGINAL PDF DIMENSIONS (IMPORTANT)
+    // ===============================
+    const originalViewport = page.getViewport({ scale: 1 });
+    const originalWidth = originalViewport.width;
+    const originalHeight = originalViewport.height;
+
+    // Save for export scaling
+    window.currentPageOriginalSize = {
+      width: originalWidth,
+      height: originalHeight,
+    };
+
+    // ===============================
+    // 🎯 DISPLAY SCALE
+    // ===============================
+    const scale = calculateOptimalScale(page);
+    const viewport = page.getViewport({ scale });
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = viewport.width;
+    tempCanvas.height = viewport.height;
+
+    const ctx = tempCanvas.getContext("2d");
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // ===============================
+    // ♻️ CLEAN OLD CANVAS
+    // ===============================
+    if (fabricRef.current) {
+      fabricRef.current.dispose();
+    }
+
+    // ===============================
+    // 🎨 CREATE FABRIC CANVAS
+    // ===============================
+    const fabricCanvas = new Canvas(canvasEl.current, {
+      width: viewport.width,
+      height: viewport.height,
+      selection: true,
+    });
+
+    fabricRef.current = fabricCanvas;
+
+    // ===============================
+    // 🖼 BACKGROUND IMAGE (FIXED + SAFE)
+    // ===============================
+    const dataUrl = tempCanvas.toDataURL("image/png");
+
+    const bgImage = await FabricImage.fromURL(dataUrl);
+    bgImage.set({
+      left: 0,
+      top: 0,
+      originX: "left",
+      originY: "top",
+      scaleX: 1,
+      scaleY: 1,
+    });
+
+    fabricCanvas.backgroundImage = bgImage;
+    fabricCanvas.renderAll();
+
+    // ===============================
+    // 🖱 TOOL HANDLER (FIXED UX)
+    // ===============================
+    fabricCanvas.on("mouse:down", (opt) => {
+      const tool = activeToolRef.current;
+
+      if (opt.target && tool === "select") return;
+      if (opt.target && tool !== "text") return;
+
+      const pointer = fabricCanvas.getScenePoint(opt.e);
+
+      // ✏️ TEXT
+      if (tool === "text") {
+        const text = new IText("Type here...", {
+          left: pointer.x,
+          top: pointer.y,
+          fontSize: 18,
+          fill: "#000000",
+          fontFamily: "Arial",
+        });
+
+        fabricCanvas.add(text);
+        text.bringToFront(); // 🔥 ensures visibility over whitebox
+        fabricCanvas.setActiveObject(text);
+        text.enterEditing();
+        fabricCanvas.renderAll();
+      }
+
+      // ⬜ WHITEBOX
+      if (tool === "whitebox" && !opt.target) {
+        const rect = new Rect({
+          left: pointer.x,
+          top: pointer.y,
+          width: 180,
+          height: 35,
+          fill: "#ffffff",
+          stroke: "#666",
+          strokeWidth: 1,
+        });
+
+        fabricCanvas.add(rect);
+        fabricCanvas.setActiveObject(rect);
+        fabricCanvas.renderAll();
+      }
+    });
+
+  } catch (err) {
+    console.error("Page load error:", err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  // Load when page changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPage();
+    }, 100); // Small delay ensures DOM is ready
+
+    return () => clearTimeout(timeoutId);
+  }, [pdfDocument, currentPage]);
+
+  // Tool mode changes
+  useEffect(() => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    canvas.isDrawingMode = activeTool === "draw";
+
+    if (activeTool === "draw") {
+      canvas.freeDrawingBrush.color = "#ff4d00";
+      canvas.freeDrawingBrush.width = 3;
+    }
+  }, [activeTool]);
+
+  // Resize handler
+  useEffect(() => {
+    let timeout;
+    const handleResize = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        if (pdfDocument && currentPage !== undefined) loadPage();
+      }, 300);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timeout);
+    };
+  }, [pdfDocument, currentPage]);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !fabricRef.current) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const img = await FabricImage.fromURL(evt.target.result);
+      img.scaleToWidth(200);
+      fabricRef.current.add(img);
+      fabricRef.current.renderAll();
+    };
+    reader.readAsDataURL(file);
+  };
+
+const handleSave = async () => {
+  if (!fabricRef.current) return;
+  setSaving(true);
+
+  try {
+    const canvas = fabricRef.current;
+    const objects = canvas.getObjects();
+
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    const annotations = objects
+      .map((obj) => {
+        if (!obj) return null;
+
+        const scaledW = obj.width * (obj.scaleX || 1);
+        const scaledH = obj.height * (obj.scaleY || 1);
+
+        const base = {
+          x: Number((obj.left / canvasWidth).toFixed(6)),
+          y: Number((obj.top / canvasHeight).toFixed(6)),
+          width: Number((scaledW / canvasWidth).toFixed(6)),
+          height: Number((scaledH / canvasHeight).toFixed(6)),
+        };
+
+        if (obj.type === "i-text" || obj.type === "textbox") {
+          return {
+            ...base,
+            type: "text",
+            content: obj.text?.trim() || "Type here...",
+            fontSize: Number(obj.fontSize || 18),
+            color: obj.fill || "#000000",
+          };
+        }
+
+        if (obj.type === "rect") {
+          return { ...base, type: "whitebox" };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    await saveAnnotations(id, currentPage, annotations);
+    alert("✅ Saved!");
+  } catch (err) {
+    console.error(err);
+    alert("Save failed");
+  } finally {
+    setSaving(false);
+  }
+};
+
+  return (
+    <div style={styles.wrapper}>
+      <input
+        id="imageUpload"
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={handleImageUpload}
+      />
+
+      <div ref={containerRef} style={styles.canvasArea}>
+        {isLoading && <div style={styles.loading}>Loading page...</div>}
+
+        <div id="canvas-host" style={styles.canvasHost}>
+          <canvas ref={canvasEl} />
+        </div>
+      </div>
+
+      <div style={styles.bottomBar}>
+        <span style={styles.hint}>
+          {activeTool === "text" && "Click anywhere to add text • "}
+          {activeTool === "whitebox" && "Click to cover content • "}
+          {activeTool === "draw" && "Free drawing mode • "}
+          {activeTool === "select" && "Click objects to select & move"}
+        </span>
+
+        <div style={styles.bottomActions}>
+          {activeTool === "image" && (
+            <button style={styles.insertBtn} onClick={() => document.getElementById("imageUpload").click()}>
+              INSERT IMAGE
+            </button>
+          )}
+          <button style={styles.saveBtn} onClick={handleSave} disabled={saving}>
+            {saving ? "SAVING..." : "SAVE PAGE ✓"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  wrapper: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    background: "#141414",
+  },
+  canvasArea: {
+    flex: 1,
+    overflow: "auto",
+    background: "#1a1a1a",
+    padding: "2rem",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
+  canvasHost: {
+    position: "relative",
+    boxShadow: "0 15px 50px rgba(0,0,0,0.7)",
+    border: "1px solid #444",
+  },
+  loading: {
+    color: "#888",
+    marginTop: "4rem",
+    fontSize: "1.1rem",
+  },
+  bottomBar: {
+    height: "52px",
+    background: "#0f0f0f",
+    borderTop: "1px solid #222",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0 1.5rem",
+  },
+  hint: { color: "#666", fontSize: "0.8rem" },
+  bottomActions: { display: "flex", gap: "10px" },
+  insertBtn: {
+    background: "none",
+    border: "1px solid #666",
+    color: "#ccc",
+    padding: "6px 14px",
+    borderRadius: "4px",
+    cursor: "pointer",
+  },
+  saveBtn: {
+    background: "#ff4d00",
+    border: "none",
+    color: "white",
+    padding: "7px 18px",
+    borderRadius: "4px",
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
+};
