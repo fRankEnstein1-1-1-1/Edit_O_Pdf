@@ -1,9 +1,9 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api/pdf",
+  baseURL: "https://edit-o-pdf.onrender.com/api/pdf",
 });
-
+//http://localhost:5000/api/pdf
 
 //  Upload PDF
 
