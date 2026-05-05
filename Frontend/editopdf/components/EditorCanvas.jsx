@@ -174,7 +174,7 @@ console.log("Canvas initialized with width:", viewport.width);
         top: pointer.y,
         width: 300,   // ← bigger
         height: 60,   // ← bigger
-        fill: "#21c51c",
+        fill: "#ffffff",
         stroke: "#666",
         strokeWidth: 1,
          selectable: true,  // ← add

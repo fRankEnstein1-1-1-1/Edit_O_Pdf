@@ -7,10 +7,15 @@ export default function UploadPage() {
   const [pdfs, setPdfs] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
+
   const fileRef = useRef();
   const navigate = useNavigate();
 
-  useEffect(() => { fetchPdfs(); }, []);
+  useEffect(() => {
+    fetchPdfs();
+  }, []);
 
   const fetchPdfs = async () => {
     try {
@@ -21,18 +26,60 @@ export default function UploadPage() {
     }
   };
 
- const handleUpload = async (file) => {
-    if (!file || file.type !== "application/pdf") return alert("PDF only!");
+  // New function: Triggered when user selects/drops a file
+  const handleFileSelect = (file) => {
+    if (!file || file.type !== "application/pdf") {
+      alert("Only PDF files are allowed!");
+      return;
+    }
+
+    setPendingFile(file);
+    setShowTutorialModal(true);     // Show tutorial dialog
+  };
+
+  // User clicks "Yes, show me tutorial"
+ const handleStartTutorial = async () => {
+  setShowTutorialModal(false);
+
+  if (!pendingFile) return;
+
+  const formData = new FormData();
+  formData.append("pdf", pendingFile);
+
+  try {
+    const res = await uploadPdf(formData);
+
+    navigate("/tutorial", {
+      state: { documentId: res.data.document._id }
+    });
+  } catch (err) {
+    alert("Upload failed");
+  }
+};
+
+  // User clicks "No, skip tutorial"
+  const handleSkipTutorial = async () => {
+    setShowTutorialModal(false);
+    if (pendingFile) {
+      await uploadAndNavigate(pendingFile);
+    }
+  };
+
+  // Actual upload function
+  const uploadAndNavigate = async (file) => {
     const formData = new FormData();
     formData.append("pdf", file);
+
     setUploading(true);
     try {
       const res = await uploadPdf(formData);
       navigate(`/editor/${res.data.document._id}`);
     } catch (err) {
-      alert("Upload failed");
+      alert("Upload failed. Please try again.");
+      console.error(err);
     } finally {
       setUploading(false);
+      setPendingFile(null);
     }
   };
 
@@ -43,12 +90,13 @@ export default function UploadPage() {
     fetchPdfs();
   };
 
- const handleDrop = (e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-handleUpload(file);
+    handleFileSelect(file);
   };
+
   return (
     <div className="page">
       <div className="container">
@@ -69,15 +117,17 @@ handleUpload(file);
             {uploading ? "Uploading..." : "Drop PDF here or click to browse"}
           </p>
           <p className="drop-hint">PDF files only · Max 50MB</p>
-        <input
-  ref={fileRef}
-  type="file"
-  accept="application/pdf"
-  style={{ display: "none" }}
- onChange={(e) => handleUpload(e.target.files[0])} // Fix: pass the specific file, not the list
-/>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf"
+            style={{ display: "none" }}
+            onChange={(e) => handleFileSelect(e.target.files[0])}
+          />
         </div>
 
+        {/* Recent Files Section */}
         {pdfs.length > 0 && (
           <div className="list-section">
             <p className="list-title">RECENT FILES</p>
@@ -91,18 +141,50 @@ handleUpload(file);
                   <div className="pdf-icon">PDF</div>
                   <div className="pdf-info">
                     <p className="pdf-name">{pdf.originalName}</p>
-                    <p className="pdf-meta">{pdf.totalPages} pages · {new Date(pdf.createdAt).toLocaleDateString()}</p>
+                    <p className="pdf-meta">
+                      {pdf.totalPages} pages · {new Date(pdf.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
                   <button
                     className="delete-btn"
                     onClick={(e) => handleDelete(e, pdf._id)}
-                  >✕</button>
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
+
+   {/* Burning God of War Modal */}
+{showTutorialModal && (
+  <div className="modal-overlay">
+    <div className="modal">
+      <div className="modal-header">
+        <span className="icon">⚡</span>
+        <h2>Welcome to Edit_O_PDF</h2>
+      </div>
+     
+      <div className="modal-body">
+        <p>Before you begin, would you like a quick tutorial on how to use <strong>Edit_O_PDF</strong>?</p>
+        <p className="modal-subtext">Get started quickly with our guided tour...</p>
+      </div>
+      <div className="modal-buttons">
+        <button className="btn-tutorial" onClick={handleStartTutorial}>
+          Yes, show me how
+        </button>
+        <button className="btn-skip" onClick={handleSkipTutorial}>
+          No, I'll figure it out
+        </button>
+      </div>
+      <div className="modal-footer">
+        First time using Edit_O_PDF
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

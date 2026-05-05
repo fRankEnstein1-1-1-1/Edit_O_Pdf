@@ -147,3 +147,117 @@
 .delete-btn:hover {
   color: #ff4d00;
 }
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
+  border: 2px solid #ff6b00;
+  border-radius: 12px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow:
+    0 0 40px rgba(255, 107, 0, 0.3),
+    0 0 80px rgba(255, 107, 0, 0.1);
+  overflow: hidden;
+  color: #ffffff;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.modal-header {
+  background: linear-gradient(to right, #1a1a1a, #2d2d2d);
+  padding: 1.5rem 1.2rem;
+  text-align: center;
+  border-bottom: 2px solid #ff6b00;
+}
+
+.modal-header .icon {
+  font-size: 2.2rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #ff6b00;
+}
+
+.modal-body {
+  padding: 1.8rem 1.5rem;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.modal-body strong {
+  color: #ff6b00;
+}
+
+.modal-subtext {
+  margin-top: 1rem;
+  font-style: italic;
+  color: #999;
+  font-size: 0.95rem;
+}
+
+.modal-buttons {
+  padding: 0 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-tutorial, .btn-skip {
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-tutorial {
+  background: #ff6b00;
+  color: #000000;
+  border: 2px solid #ff6b00;
+}
+
+.btn-tutorial:hover {
+  background: #ff8533;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+.btn-skip {
+  background: transparent;
+  color: #999;
+  border: 2px solid #444;
+}
+
+.btn-skip:hover {
+  background: #222;
+  border-color: #666;
+  color: #ffffff;
+}
+
+.modal-footer {
+  background: #111;
+  padding: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  border-top: 1px solid #333;
+}
