@@ -6,7 +6,7 @@ import { saveAnnotations } from "../api/pdfApi";
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
 
-export default function EditorCanvas({ id, document: pdfDocument, currentPage, activeTool }) {
+export default function EditorCanvas({ id, document: pdfDocument, currentPage, activeTool, activeColor })  {
   const canvasEl = useRef(null);
   const fabricRef = useRef(null);
   const containerRef = useRef(null);
@@ -16,7 +16,10 @@ export default function EditorCanvas({ id, document: pdfDocument, currentPage, a
   const [isLoading, setIsLoading] = useState(false);
 
   const activeToolRef = useRef(activeTool);
-
+const activeColorRef = useRef(activeColor);
+useEffect(() => {
+    activeColorRef.current = activeColor;
+}, [activeColor]);
   useEffect(() => {
     activeToolRef.current = activeTool;
   }, [activeTool]);
@@ -157,7 +160,7 @@ console.log("Canvas initialized with width:", viewport.width);
         left: pointer.x,
         top: pointer.y,
         fontSize: 18,
-        fill: "#000000",
+        fill: activeColorRef.current, 
         fontFamily: "Arial",
     });
     fabricCanvas.add(text);
@@ -174,8 +177,8 @@ console.log("Canvas initialized with width:", viewport.width);
         top: pointer.y,
         width: 300,   // ← bigger
         height: 60,   // ← bigger
-        fill: "#ffffff",
-        stroke: "#666",
+         fill: "#ffffff",  // ← always white for eraser
+        stroke: activeColorRef.current,  // ← colored border
         strokeWidth: 1,
          selectable: true,  // ← add
     evented: true,     // ← add
@@ -208,14 +211,13 @@ console.log("Canvas initialized with width:", viewport.width);
     if (!fabricRef.current) return;
     const canvas = fabricRef.current;
     canvas.isDrawingMode = activeTool === "draw";
-
     if (activeTool === "draw") {
-        const brush = new PencilBrush(canvas); // ← v7 requires this
-        brush.color = "#ff4d00";
+        const brush = new PencilBrush(canvas);
+        brush.color = activeColor;  // ← use activeColor
         brush.width = 3;
         canvas.freeDrawingBrush = brush;
     }
-}, [activeTool]);
+}, [activeTool, activeColor]);  // ← add activeColor dependency
 
   // Resize handler
   useEffect(() => {

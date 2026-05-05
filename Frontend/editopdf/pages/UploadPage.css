@@ -1,263 +1,472 @@
-.page {
-  min-height: 100vh;
-  background: #0a0a0a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Courier New', monospace;
-  padding: 2rem;
-}
+  .page {
+    min-height: 100vh;
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    padding: 2rem;
+  }
 
-.container {
-  width: 100%;
-  max-width: 600px;
-}
+  .container {
+    width: 100%;
+    max-width: 600px;
+  }
 
-.header {
-  margin-bottom: 2.5rem;
-  text-align: center;
-}
+  .header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
 
-.title {
-  font-size: 3rem;
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: 0.1em;
-  margin: 0;
-}
+  .title {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.1em;
+    margin: 0;
+  }
 
+
+
+  .subtitle {
+    color: #555;
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    margin-top: 0.5rem;
+  }
+
+  .dropzone {
+    border: 2px dashed #333;
+    border-radius: 4px;
+    padding: 3rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #0f0f0f;
+  }
+
+  .dropzone.active {
+    border: 2px dashed #ff4d00;
+    background: #150a00;
+  }
+
+  .drop-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #ff4d00;
+  }
+
+  .drop-text {
+    color: #ccc;
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .drop-hint {
+    color: #444;
+    font-size: 0.75rem;
+    margin: 0;
+  }
+
+  .list-section {
+    margin-top: 2.5rem;
+  }
+
+  .list-title {
+    color: #444;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    margin-bottom: 0.75rem;
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #111;
+    border: 1px solid #1f1f1f;
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .list-item:hover {
+    background: #1a1a1a;
+  }
+
+  .pdf-icon {
+    background: #ff4d00;
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 900;
+    padding: 0.3rem 0.4rem;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  .pdf-info {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .pdf-name {
+    color: #ddd;
+    font-size: 0.85rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pdf-meta {
+    color: #555;
+    font-size: 0.7rem;
+    margin: 0.2rem 0 0;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #444;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 2px;
+    transition: color 0.15s;
+  }
+
+  .delete-btn:hover {
+    color: #ff4d00;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal {
+    background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
+    border: 2px solid #ff6b00;
+    border-radius: 12px;
+    width: 420px;
+    max-width: 90%;
+    box-shadow:
+      0 0 40px rgba(255, 107, 0, 0.3),
+      0 0 80px rgba(255, 107, 0, 0.1);
+    overflow: hidden;
+    color: #ffffff;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+  }
+
+  .modal-header {
+    background: linear-gradient(to right, #1a1a1a, #2d2d2d);
+    padding: 1.5rem 1.2rem;
+    text-align: center;
+    border-bottom: 2px solid #ff6b00;
+  }
+
+  .modal-header .icon {
+    font-size: 2.2rem;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #ff6b00;
+  }
+
+  .modal-body {
+    padding: 1.8rem 1.5rem;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .modal-body strong {
+    color: #ff6b00;
+  }
+
+  .modal-subtext {
+    margin-top: 1rem;
+    font-style: italic;
+    color: #999;
+    font-size: 0.95rem;
+  }
+
+  .modal-buttons {
+    padding: 0 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn-tutorial, .btn-skip {
+    padding: 14px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-tutorial {
+    background: #ff6b00;
+    color: #000000;
+    border: 2px solid #ff6b00;
+  }
+
+  .btn-tutorial:hover {
+    background: #ff8533;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+  }
+
+  .btn-skip {
+    background: transparent;
+    color: #999;
+    border: 2px solid #444;
+  }
+
+  .btn-skip:hover {
+    background: #222;
+    border-color: #666;
+    color: #ffffff;
+  }
+
+  .modal-footer {
+    background: #111;
+    padding: 12px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #666;
+    border-top: 1px solid #333;
+  }
+
+/* Burning Omega (Ω) - God of War style orange flame animation */
 .accent {
-  color: #ff4d00;
+  display: inline-block;
+font-size: 3rem;
+margin-left: 15px;
+margin-right: 15px;
+  color: #ff5e00;
+  text-shadow: 0 0 5px #ff3c00, 0 0 10px #ff8c00, 0 0 20px #ff4500, 0 0 30px #ff0000;
+  animation: flameFlicker 2.5s infinite alternate;
 }
-
-.subtitle {
-  color: #555;
-  font-size: 0.8rem;
-  letter-spacing: 0.3em;
-  margin-top: 0.5rem;
-}
-
-.dropzone {
-  border: 2px dashed #333;
-  border-radius: 4px;
-  padding: 3rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #0f0f0f;
-}
-
-.dropzone.active {
-  border: 2px dashed #ff4d00;
-  background: #150a00;
-}
-
-.drop-icon {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: #ff4d00;
-}
-
-.drop-text {
-  color: #ccc;
-  font-size: 1rem;
-  margin: 0 0 0.5rem;
-}
-
-.drop-hint {
-  color: #444;
-  font-size: 0.75rem;
-  margin: 0;
-}
-
-.list-section {
-  margin-top: 2.5rem;
-}
-
-.list-title {
-  color: #444;
-  font-size: 0.7rem;
-  letter-spacing: 0.3em;
-  margin-bottom: 0.75rem;
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.list-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: #111;
-  border: 1px solid #1f1f1f;
-  border-radius: 4px;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.list-item:hover {
-  background: #1a1a1a;
-}
-
-.pdf-icon {
-  background: #ff4d00;
-  color: #fff;
-  font-size: 0.6rem;
-  font-weight: 900;
-  padding: 0.3rem 0.4rem;
-  border-radius: 2px;
-  letter-spacing: 0.05em;
-}
-
-.pdf-info {
-  flex: 1;
-  overflow: hidden;
-}
-
-.pdf-name {
-  color: #ddd;
-  font-size: 0.85rem;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pdf-meta {
-  color: #555;
-  font-size: 0.7rem;
-  margin: 0.2rem 0 0;
-}
-
-.delete-btn {
-  background: none;
-  border: none;
-  color: #444;
-  cursor: pointer;
-  font-size: 0.9rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 2px;
-  transition: color 0.15s;
-}
-
-.delete-btn:hover {
-  color: #ff4d00;
-}
-
-.modal-overlay {
+/* ========== ANIMATED FOOTER - GOD OF WAR STYLE ========== */
+/* ========== BOTTOM-RIGHT CORNER ANIMATED FOOTER ========== */
+.footer-corner {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
-  border: 2px solid #ff6b00;
-  border-radius: 12px;
-  width: 420px;
-  max-width: 90%;
-  box-shadow:
-    0 0 40px rgba(255, 107, 0, 0.3),
-    0 0 80px rgba(255, 107, 0, 0.1);
-  overflow: hidden;
-  color: #ffffff;
-  font-family: 'Inter', 'Segoe UI', sans-serif;
-}
-
-.modal-header {
-  background: linear-gradient(to right, #1a1a1a, #2d2d2d);
-  padding: 1.5rem 1.2rem;
-  text-align: center;
-  border-bottom: 2px solid #ff6b00;
-}
-
-.modal-header .icon {
-  font-size: 2.2rem;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #ff6b00;
-}
-
-.modal-body {
-  padding: 1.8rem 1.5rem;
-  text-align: center;
-  line-height: 1.6;
-}
-
-.modal-body strong {
-  color: #ff6b00;
-}
-
-.modal-subtext {
-  margin-top: 1rem;
-  font-style: italic;
-  color: #999;
-  font-size: 0.95rem;
-}
-
-.modal-buttons {
-  padding: 0 1.5rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.btn-tutorial, .btn-skip {
-  padding: 14px 24px;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  border: none;
-  border-radius: 8px;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-.btn-tutorial {
-  background: #ff6b00;
-  color: #000000;
-  border: 2px solid #ff6b00;
+.footer-corner-content {
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 107, 0, 0.3);
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  text-align: right;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-.btn-tutorial:hover {
-  background: #ff8533;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+.footer-corner-content:hover {
+  background: rgba(15, 15, 15, 0.95);
+  border-color: rgba(255, 107, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 77, 0, 0.3);
+  transform: translateX(-5px) translateY(-5px);
 }
 
-.btn-skip {
-  background: transparent;
-  color: #999;
-  border: 2px solid #444;
+/* Animated flame border on hover */
+.footer-corner-flame {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    #ff4d00, 
+    #ff8c00, 
+    #ffcc00, 
+    transparent
+  );
+  animation: cornerFlameSweep 3s ease-in-out infinite;
 }
 
-.btn-skip:hover {
-  background: #222;
-  border-color: #666;
-  color: #ffffff;
+@keyframes cornerFlameSweep {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  50% {
+    left: 0;
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
 }
 
-.modal-footer {
-  background: #111;
-  padding: 12px;
-  text-align: center;
+/* Footer text styling */
+.footer-corner-text {
+  color: #aaa;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+}
+
+.footer-corner-heart {
+  display: inline-block;
+  color: #ff3300;
   font-size: 0.85rem;
-  color: #666;
-  border-top: 1px solid #333;
+  animation: cornerHeartbeat 1.5s ease-in-out infinite;
+  text-shadow: 0 0 3px #ff4d00;
+}
+
+@keyframes cornerHeartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+.footer-corner-name {
+  color: #ff6b00;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 3px rgba(255, 107, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+.footer-corner-name:hover {
+  color: #ffaa33;
+  text-shadow: 0 0 5px #ff6b00;
+}
+
+/* Tagline styling */
+.footer-corner-tagline {
+  color: #ff6b00;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  margin-top: 0.3rem;
+  margin-bottom: 0;
+  opacity: 0.7;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  white-space: nowrap;
+  animation: cornerFadeGlow 2s ease-in-out infinite;
+}
+
+@keyframes cornerFadeGlow {
+  0%, 100% {
+    opacity: 0.4;
+    text-shadow: 0 0 1px #ff4d00;
+  }
+  50% {
+    opacity: 0.9;
+    text-shadow: 0 0 5px #ff6b00;
+  }
+}
+
+/* Floating sparks animation */
+.footer-corner-sparks {
+  margin-top: 0.4rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.corner-spark {
+  display: inline-block;
+  color: #ff8c00;
+  font-size: 0.5rem;
+  animation: cornerSparkFloat 1.5s ease-in-out infinite;
+  opacity: 0;
+}
+
+.corner-spark:nth-child(1) {
+  animation-delay: 0s;
+}
+.corner-spark:nth-child(2) {
+  animation-delay: 0.5s;
+  color: #ffaa33;
+}
+.corner-spark:nth-child(3) {
+  animation-delay: 1s;
+}
+
+@keyframes cornerSparkFloat {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(-4px) rotate(45deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0px) rotate(90deg);
+    opacity: 0;
+  }
+}
+
+/* Optional: Add subtle entrance animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.footer-corner {
+  animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes flameFlicker {
+  0% {
+    text-shadow: 0 0 2px #ff4d00, 0 0 6px #ff6a00, 0 0 12px #ff8c00;
+    color: #ff6600;
+  }
+  50% {
+    text-shadow: 0 0 6px #ff2a00, 0 0 14px #ff5e00, 0 0 22px #ffaa33;
+    color: #ff3300;
+  }
+  100% {
+    text-shadow: 0 0 4px #ff7b00, 0 0 10px #ff9900, 0 0 18px #ffcc44;
+    color: #ff8833;
+  }
 }

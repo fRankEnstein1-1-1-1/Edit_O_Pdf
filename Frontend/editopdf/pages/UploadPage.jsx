@@ -101,7 +101,7 @@ export default function UploadPage() {
     <div className="page">
       <div className="container">
         <div className="header">
-          <h1 className="title">EDIT<span className="accent">_O_</span>PDF</h1>
+         <h1 className="title">EDIT_<span className="accent">Ω</span>_PDF</h1>
           <p className="subtitle">Upload · Edit · Export</p>
         </div>
 
@@ -128,34 +128,24 @@ export default function UploadPage() {
         </div>
 
         {/* Recent Files Section */}
-        {pdfs.length > 0 && (
-          <div className="list-section">
-            <p className="list-title">RECENT FILES</p>
-            <div className="list">
-              {pdfs.map((pdf) => (
-                <div
-                  key={pdf._id}
-                  className="list-item"
-                  onClick={() => navigate(`/editor/${pdf._id}`)}
-                >
-                  <div className="pdf-icon">PDF</div>
-                  <div className="pdf-info">
-                    <p className="pdf-name">{pdf.originalName}</p>
-                    <p className="pdf-meta">
-                      {pdf.totalPages} pages · {new Date(pdf.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <button
-                    className="delete-btn"
-                    onClick={(e) => handleDelete(e, pdf._id)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+  
+
+        {/* 🔥 NEW ANIMATED FOOTER - Add this here */}
+  {/* 🔥 BOTTOM-RIGHT CORNER FOOTER - Fixed position */}
+<footer className="footer-corner">
+  <div className="footer-corner-content">
+    <div className="footer-corner-flame"></div>
+    <p className="footer-corner-text">
+      Made for <span className="footer-corner-heart">YOU</span> by <strong className="footer-corner-name">fRankEnstein</strong>
+    </p>
+    <p className="footer-corner-tagline">Chekout my github profile for more</p>
+    <div className="footer-corner-sparks">
+      <span className="corner-spark">✦</span>
+      <span className="corner-spark">✧</span>
+      <span className="corner-spark">✦</span>
+    </div>
+  </div>
+</footer>
       </div>
 
    {/* Burning God of War Modal */}

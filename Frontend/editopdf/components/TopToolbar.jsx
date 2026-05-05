@@ -9,8 +9,8 @@ const tools = [
    { id: "delete", label: "DELETE", icon: "✕" },
 ];
 
-export default function TopToolbar({ activeTool, setActiveTool, id, document }) {
-
+export default function TopToolbar({ activeTool, setActiveTool, activeColor, setActiveColor, id, document }) {
+const colors = ["#000000", "#ff4d00", "#ff0000", "#0000ff", "#008000", "#ffffff", "#ffff00", "#ff69b4"];
   const handleExport = async () => {
     try {
       const res = await exportPdf(id);
@@ -28,34 +28,77 @@ export default function TopToolbar({ activeTool, setActiveTool, id, document }) 
 
   return (
     <div style={styles.toolbar}>
-      {/* Left — filename */}
-      <div style={styles.filename}>
-        <span style={styles.accent}>▶</span> {document.originalName}
-      </div>
+        {/* Left — filename */}
+        <div style={styles.filename}>
+            <span style={styles.accent}>▶</span> {document.originalName}
+        </div>
 
-      {/* Center — tools */}
-      <div style={styles.tools}>
-        {tools.map((tool) => (
-          <button
-            key={tool.id}
-            style={{
-              ...styles.toolBtn,
-              ...(activeTool === tool.id ? styles.toolBtnActive : {}),
-            }}
-            onClick={() => setActiveTool(tool.id)}
-          >
-            <span style={styles.toolIcon}>{tool.icon}</span>
-            <span style={styles.toolLabel}>{tool.label}</span>
-          </button>
-        ))}
-      </div>
+        {/* Center — tools + color picker */}
+        <div style={styles.centerGroup}>
+            <div style={styles.tools}>
+                {tools.map((tool) => (
+                    <button
+                        key={tool.id}
+                        style={{
+                            ...styles.toolBtn,
+                            ...(activeTool === tool.id ? styles.toolBtnActive : {}),
+                        }}
+                        onClick={() => setActiveTool(tool.id)}
+                    >
+                        <span style={styles.toolIcon}>{tool.icon}</span>
+                        <span style={styles.toolLabel}>{tool.label}</span>
+                    </button>
+                ))}
+            </div>
 
-      {/* Right — export */}
-      <button style={styles.exportBtn} onClick={handleExport}>
-        EXPORT PDF ↓
-      </button>
+            {/* Color dots — only for relevant tools */}
+            {["text", "draw"].includes(activeTool) && (
+                <div style={styles.colorPicker}>
+                    {["#000000", "#ff4d00", "#ff0000", "#0055ff", "#008000", "#ffff00", "#ff69b4", "#ffffff"].map((color) => (
+                        <div
+                            key={color}
+                            onClick={() => setActiveColor(color)}
+                            style={{
+                                width: "16px",
+                                height: "16px",
+                                borderRadius: "50%",
+                                background: color,
+                                cursor: "pointer",
+                                border: activeColor === color
+                                    ? "2px solid #fff"
+                                    : "2px solid #444",
+                                transform: activeColor === color ? "scale(1.3)" : "scale(1)",
+                                transition: "all 0.15s",
+                                flexShrink: 0,
+                            }}
+                        />
+                    ))}
+                    {/* Custom color */}
+                    <input
+                        type="color"
+                        value={activeColor}
+                        onChange={(e) => setActiveColor(e.target.value)}
+                        style={{
+                            width: "16px",
+                            height: "16px",
+                            borderRadius: "50%",
+                            border: "2px solid #444",
+                            cursor: "pointer",
+                            padding: 0,
+                            background: "none",
+                        }}
+                        title="Custom color"
+                    />
+                </div>
+            )}
+        </div>
+
+        {/* Right — export */}
+        <button style={styles.exportBtn} onClick={handleExport}>
+            EXPORT PDF ↓
+        </button>
     </div>
-  );
+);
 }
 
 const styles = {
@@ -117,4 +160,16 @@ const styles = {
     fontWeight: "900",
     whiteSpace: "nowrap",
   },
+  centerGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+},
+colorPicker: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    paddingLeft: "0.75rem",
+    borderLeft: "1px solid #2a2a2a",
+},
 };
