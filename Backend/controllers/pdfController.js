@@ -241,6 +241,16 @@ exports.exportPdf = async (req, res) => {
   // White boxes first
   for (const ann of annotations || []) {
     if (ann.type === "whitebox") {
+      console.log(
+        "Drawing whitebox:",
+        ann.x,
+        ann.y,
+        ann.width,
+        ann.height,
+        "page height:",
+        pdfHeight
+      );
+
       page.drawRectangle({
         x: ann.x,
         y: pdfHeight - ann.y - ann.height,   // y-flip
@@ -249,6 +259,7 @@ exports.exportPdf = async (req, res) => {
         color: rgb(1, 1, 1),
       });
     }
+   
   }
 
   // Text & Images
@@ -263,6 +274,18 @@ exports.exportPdf = async (req, res) => {
         color: rgb(r, g, b),
       });
     }
+  if (ann.type === "drawing") {
+    const [r, g, b] = hexToRgb(ann.stroke || "#ff4d00");
+    const pathString = ann.path.map(cmd => cmd.join(" ")).join(" ");
+    
+    page.drawSvgPath(pathString, {
+        x: 0,
+        y: pdfHeight,  // ← SVG origin is top-left, PDF is bottom-left
+        scale: 1,
+        borderColor: rgb(r, g, b),
+        borderWidth: ann.strokeWidth || 2,
+    });
+}
 
     if (ann.type === "image") {
       const imageBytes = Buffer.from(ann.imageData, "base64");

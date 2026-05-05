@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
-import { Canvas, IText, Rect, FabricImage } from "fabric";
+import { Canvas, IText, Rect, FabricImage,PencilBrush } from "fabric";
 import { saveAnnotations } from "../api/pdfApi";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -122,11 +122,11 @@ fabricCanvas.renderAll();
 console.log("Canvas initialized with width:", viewport.width);
 
 // Store exact sizes
-window.currentPageOriginalSize = {
-  pdfWidth: originalViewport.width,
-  pdfHeight: originalViewport.height,
-  canvasWidth: viewport.width,
-};
+// window.currentPageOriginalSize = {
+//   pdfWidth: originalViewport.width,
+//   pdfHeight: originalViewport.height,
+//   canvasWidth: viewport.width,
+// };
     // ===============================
     // 🖱 TOOL HANDLER
     // ===============================
@@ -139,34 +139,32 @@ window.currentPageOriginalSize = {
       const pointer = fabricCanvas.getScenePoint(opt.e);
 
       // TEXT
-      if (tool === "text") {
-        const text = new IText("Type here...", {
-          left: pointer.x,
-          top: pointer.y,
-          fontSize: 18,
-          fill: "#000000",
-          fontFamily: "Arial",
-        });
-
-        fabricCanvas.add(text);
-        text.bringToFront();
-        fabricCanvas.setActiveObject(text);
-        text.enterEditing();
-        fabricCanvas.renderAll();
-      }
+   if (tool === "text") {
+    const text = new IText("Type here...", {
+        left: pointer.x,
+        top: pointer.y,
+        fontSize: 18,
+        fill: "#000000",
+        fontFamily: "Arial",
+    });
+    fabricCanvas.add(text);
+    fabricCanvas.bringObjectToFront(text); // ← v7 syntax
+    fabricCanvas.setActiveObject(text);
+    text.enterEditing();
+    fabricCanvas.renderAll();
+}
 
       // WHITEBOX
-      if (tool === "whitebox" && !opt.target) {
-        const rect = new Rect({
-          left: pointer.x,
-          top: pointer.y,
-          width: 180,
-          height: 35,
-          fill: "#ffffff",
-          stroke: "#666",
-          strokeWidth: 1,
-        });
-
+     if (tool === "whitebox" && !opt.target) {
+    const rect = new Rect({
+        left: pointer.x,
+        top: pointer.y,
+        width: 300,   // ← bigger
+        height: 60,   // ← bigger
+        fill: "#21c51c",
+        stroke: "#666",
+        strokeWidth: 1,
+    });
         fabricCanvas.add(rect);
         fabricCanvas.setActiveObject(rect);
         fabricCanvas.renderAll();
@@ -190,16 +188,18 @@ window.currentPageOriginalSize = {
   }, [pdfDocument, currentPage]);
 
   // Tool mode changes
-  useEffect(() => {
+ useEffect(() => {
     if (!fabricRef.current) return;
     const canvas = fabricRef.current;
     canvas.isDrawingMode = activeTool === "draw";
 
     if (activeTool === "draw") {
-      canvas.freeDrawingBrush.color = "#ff4d00";
-      canvas.freeDrawingBrush.width = 3;
+        const brush = new PencilBrush(canvas); // ← v7 requires this
+        brush.color = "#ff4d00";
+        brush.width = 3;
+        canvas.freeDrawingBrush = brush;
     }
-  }, [activeTool]);
+}, [activeTool]);
 
   // Resize handler
   useEffect(() => {
@@ -239,51 +239,76 @@ const handleSave = async () => {
   try {
     const canvas = fabricRef.current;
     const orig = window.currentPageOriginalSize;
-    if (!orig?.pdfWidth) return alert("Reload page");
-
     const ratio = orig.pdfWidth / canvas.getWidth();
 
-    // Use the value that worked best for you
-    const offsetX = -58;   
-    const offsetY = -17;
+    const annotations = canvas.getObjects().map((obj,index) => {
+      const left = obj.left || 0;
+      const top = obj.top || 0;
+      const w = (obj.width || 0) * (obj.scaleX || 1);
+      const h = (obj.height || 0) * (obj.scaleY || 1);
 
-    const annotations = canvas.getObjects().map((obj) => {
-      if (!obj) return null;
+     const pdfX = Math.max(0, Math.round(left * ratio) - 33);  // was -37, reduced
+const pdfY = Math.max(0, Math.round(top * ratio)-17 )   // was -7, increased        // ← NO FLIP (Top-left)
 
-      let left = Math.max(0, (obj.left + offsetX) * ratio);
-      let top = Math.max(0, (obj.top + offsetY) * ratio);
+      console.log(`Saving ${obj.type} at PDF(${pdfX}, ${pdfY})  [canvas: ${left.toFixed(1)},${top.toFixed(1)}]`);
 
-      const width = (obj.width * (obj.scaleX || 1)) * ratio;
-      const height = (obj.height * (obj.scaleY || 1)) * ratio;
-
-      if (obj.type === "i-text" || obj.type === "textbox") {
-        return {
-          type: "text",
-          x: left,
-          y: top,
-          content: obj.text,
-          fontSize: obj.fontSize * ratio,
-          color: obj.fill || "#000000"
-        };
-      }
-
-      if (obj.type === "rect") {
+      if (obj.type === "rect" || obj.type === "whitebox") {
         return {
           type: "whitebox",
-          x: left,
-          y: top,
-          width: width,
-          height: height
+          x: pdfX,
+          y: pdfY,
+          width: Math.round(w * ratio),
+          height: Math.round(h * ratio),
+          zindex:index,
         };
       }
+
+      if (obj.type === "i-text" || obj.type === "textbox") {
+         console.log("Text content:", obj.text);
+    console.log("Text coords:", pdfX, pdfY);
+    console.log("Font size:", obj.fontSize, "scaleX:", obj.scaleX);
+        return {
+          type: "text",
+          x: pdfX,
+          y: pdfY,
+          content: obj.text || "Sample Text",
+        fontSize: Math.round((obj.fontSize * (obj.scaleX || 1)) * ratio),
+          color: obj.fill || "#000000",
+          zindex: index,
+        };
+      }
+
+      if (obj.type === "path") {
+    // Scale the entire path array by ratio
+    const scaledPath = obj.path.map(cmd => {
+        const command = [...cmd];
+        // First element is the command letter (M, L, C, Q, Z etc)
+        // Rest are coordinate pairs
+        for (let i = 1; i < command.length; i++) {
+            command[i] = command[i] * ratio;
+        }
+        return command;
+    });
+
+    return {
+        type: "drawing",
+        x: 0,  // ← set to 0, path coords are absolute
+        y: 0,  // ← set to 0, path coords are absolute
+        path: scaledPath,
+        stroke: obj.stroke || "#ff4d00",
+        strokeWidth: (obj.strokeWidth || 3) * ratio,
+    };
+}
 
       return null;
     }).filter(Boolean);
 
+    console.log("Sending:", annotations);
     await saveAnnotations(id, currentPage, annotations);
-    alert("Saved with offsetX=" + offsetX);
+    alert("Saved! Check the downloaded PDF.");
   } catch (e) {
     console.error(e);
+    alert("Save failed");
   } finally {
     setSaving(false);
   }
