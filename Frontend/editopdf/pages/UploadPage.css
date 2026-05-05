@@ -1,0 +1,149 @@
+.page {
+  min-height: 100vh;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+  padding: 2rem;
+}
+
+.container {
+  width: 100%;
+  max-width: 600px;
+}
+
+.header {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.accent {
+  color: #ff4d00;
+}
+
+.subtitle {
+  color: #555;
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  margin-top: 0.5rem;
+}
+
+.dropzone {
+  border: 2px dashed #333;
+  border-radius: 4px;
+  padding: 3rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #0f0f0f;
+}
+
+.dropzone.active {
+  border: 2px dashed #ff4d00;
+  background: #150a00;
+}
+
+.drop-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #ff4d00;
+}
+
+.drop-text {
+  color: #ccc;
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.drop-hint {
+  color: #444;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.list-section {
+  margin-top: 2.5rem;
+}
+
+.list-title {
+  color: #444;
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  margin-bottom: 0.75rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #111;
+  border: 1px solid #1f1f1f;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.list-item:hover {
+  background: #1a1a1a;
+}
+
+.pdf-icon {
+  background: #ff4d00;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 0.3rem 0.4rem;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+}
+
+.pdf-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.pdf-name {
+  color: #ddd;
+  font-size: 0.85rem;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdf-meta {
+  color: #555;
+  font-size: 0.7rem;
+  margin: 0.2rem 0 0;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #444;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 2px;
+  transition: color 0.15s;
+}
+
+.delete-btn:hover {
+  color: #ff4d00;
+}

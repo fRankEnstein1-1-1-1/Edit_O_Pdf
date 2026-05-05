@@ -6,6 +6,7 @@ const tools = [
   { id: "whitebox", label: "ERASER", icon: "▭" },
   { id: "draw", label: "DRAW", icon: "✏" },
   { id: "image", label: "IMAGE", icon: "⊞" },
+   { id: "delete", label: "DELETE", icon: "✕" },
 ];
 
 export default function TopToolbar({ activeTool, setActiveTool, id, document }) {

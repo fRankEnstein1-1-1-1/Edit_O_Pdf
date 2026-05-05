@@ -132,6 +132,19 @@ console.log("Canvas initialized with width:", viewport.width);
     // ===============================
     fabricCanvas.on("mouse:down", (opt) => {
       const tool = activeToolRef.current;
+          // DELETE tool
+   if (tool === "delete") {
+    if (opt.target) {
+      fabricCanvas.remove(opt.target);
+      fabricCanvas.discardActiveObject();
+      fabricCanvas.renderAll();
+      console.log("Annotation deleted");
+      
+      // Optional: Auto switch back to select after deleting annotation
+      // setActiveTool("select");   // Uncomment if you want
+    }
+    return;
+  }
 
       if (opt.target && tool === "select") return;
       if (opt.target && tool !== "text") return;
@@ -164,6 +177,9 @@ console.log("Canvas initialized with width:", viewport.width);
         fill: "#21c51c",
         stroke: "#666",
         strokeWidth: 1,
+         selectable: true,  // ← add
+    evented: true,     // ← add
+    hasControls: true, // ← add
     });
         fabricCanvas.add(rect);
         fabricCanvas.setActiveObject(rect);
@@ -298,13 +314,29 @@ const pdfY = Math.max(0, Math.round(top * ratio)-17 )   // was -7, increased    
         stroke: obj.stroke || "#ff4d00",
         strokeWidth: (obj.strokeWidth || 3) * ratio,
     };
+    
 }
 
+if (obj.type === "image") {
+    const dataUrl = obj.toDataURL();
+    const base64 = dataUrl.split(",")[1];
+    return {
+        type: "image",
+        x: pdfX,
+        y: pdfY,
+        width: Math.round(w * ratio),
+        height: Math.round(h * ratio),
+        imageData: base64,
+        mimeType: "image/png",
+    };
+}
       return null;
     }).filter(Boolean);
 
     console.log("Sending:", annotations);
     await saveAnnotations(id, currentPage, annotations);
+
+    
     alert("Saved! Check the downloaded PDF.");
   } catch (e) {
     console.error(e);

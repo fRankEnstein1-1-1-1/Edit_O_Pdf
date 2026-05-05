@@ -1,19 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-import { Canvas, IText, Rect, FabricImage, Path } from "fabric";
+import { useEffect, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { addPage, deletePage } from "../api/pdfApi";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
 
-export default function PageSidebar({ id, document, currentPage, setCurrentPage, setDocument }) {
+export default function PageSidebar({ 
+  id, 
+  document: pdfDoc,     // Fixed typo: was "documen"
+  currentPage, 
+  setCurrentPage, 
+  setDocument 
+}) {
   const [thumbnails, setThumbnails] = useState([]);
-  const canvasRefs = useRef([]);
 
   useEffect(() => {
-    if (document) renderThumbnails();
-  }, [document]);
+    renderThumbnails();
+  }, [pdfDoc?.totalPages]);   // Better dependency
 
   const renderThumbnails = async () => {
+    if (!id) return;
     try {
       const response = await fetch(`http://localhost:5000/api/pdf/${id}/file`);
       const blob = await response.blob();
@@ -24,7 +29,7 @@ export default function PageSidebar({ id, document, currentPage, setCurrentPage,
       for (let i = 0; i < pdf.numPages; i++) {
         const page = await pdf.getPage(i + 1);
         const viewport = page.getViewport({ scale: 0.3 });
-        const canvas = window.document.createElement("canvas");
+        const canvas = document.createElement("canvas");
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext("2d");
@@ -33,7 +38,7 @@ export default function PageSidebar({ id, document, currentPage, setCurrentPage,
       }
       setThumbnails(thumbs);
     } catch (err) {
-      console.error(err);
+      console.error("Thumbnail render error:", err);
     }
   };
 
@@ -47,16 +52,27 @@ export default function PageSidebar({ id, document, currentPage, setCurrentPage,
     }
   };
 
-  const handleDeletePage = async (e, pageIndex) => {
-    e.stopPropagation();
-    if (document.totalPages <= 1) return alert("Cannot delete the only page!");
-    if (!confirm(`Delete page ${pageIndex + 1}?`)) return;
+  const handleDeleteCurrentPage = async () => {
+    if (!pdfDoc || pdfDoc.totalPages <= 1) {
+      return alert("Cannot delete the only remaining page!");
+    }
+
+    if (!confirm(`Delete current page ${currentPage + 1}?`)) return;
+
     try {
-      const res = await deletePage(id, pageIndex);
+      const res = await deletePage(id, currentPage);
+      
       setDocument((prev) => ({ ...prev, totalPages: res.data.totalPages }));
-      if (currentPage >= res.data.totalPages) setCurrentPage(res.data.totalPages - 1);
+      
+      // Move to previous page if we deleted the last one
+      if (currentPage >= res.data.totalPages) {
+        setCurrentPage(Math.max(0, res.data.totalPages - 1));
+      }
+      
       setTimeout(() => renderThumbnails(), 500);
+      alert("Page deleted successfully");
     } catch (err) {
+      console.error(err);
       alert("Failed to delete page");
     }
   };
@@ -65,7 +81,16 @@ export default function PageSidebar({ id, document, currentPage, setCurrentPage,
     <div style={styles.sidebar}>
       <div style={styles.header}>
         <span style={styles.headerText}>PAGES</span>
-        <button style={styles.addBtn} onClick={handleAddPage}>+ ADD</button>
+        <div style={styles.headerButtons}>
+          <button style={styles.addBtn} onClick={handleAddPage}>+ ADD</button>
+          <button 
+            style={styles.deleteBtn} 
+            onClick={handleDeleteCurrentPage}
+            disabled={pdfDoc?.totalPages <= 1}
+          >
+            🗑 DELETE
+          </button>
+        </div>
       </div>
 
       <div style={styles.list}>
@@ -81,10 +106,7 @@ export default function PageSidebar({ id, document, currentPage, setCurrentPage,
             <img src={thumb} style={styles.thumb} alt={`Page ${i + 1}`} />
             <div style={styles.pageNum}>
               <span>{i + 1}</span>
-              <button
-                style={styles.deletePageBtn}
-                onClick={(e) => handleDeletePage(e, i)}
-              >✕</button>
+              {/* Optional: Keep small × if you want, but main delete is now in header */}
             </div>
           </div>
         ))}
@@ -109,6 +131,10 @@ const styles = {
     padding: "0.75rem",
     borderBottom: "1px solid #1f1f1f",
   },
+  headerButtons: {
+    display: "flex",
+    gap: "6px",
+  },
   headerText: {
     color: "#444",
     fontSize: "0.65rem",
@@ -123,7 +149,16 @@ const styles = {
     fontSize: "0.6rem",
     padding: "0.2rem 0.4rem",
     fontFamily: "'Courier New', monospace",
-    letterSpacing: "0.05em",
+  },
+  deleteBtn: {
+    background: "none",
+    border: "1px solid #e74c3c",
+    borderRadius: "2px",
+    color: "#e74c3c",
+    cursor: "pointer",
+    fontSize: "0.6rem",
+    padding: "0.2rem 0.4rem",
+    fontFamily: "'Courier New', monospace",
   },
   list: {
     flex: 1,
@@ -155,13 +190,5 @@ const styles = {
     background: "#111",
     color: "#555",
     fontSize: "0.65rem",
-  },
-  deletePageBtn: {
-    background: "none",
-    border: "none",
-    color: "#333",
-    cursor: "pointer",
-    fontSize: "0.7rem",
-    padding: "0",
   },
 };
