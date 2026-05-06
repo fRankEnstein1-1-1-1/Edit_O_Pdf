@@ -20,7 +20,7 @@ export default function PageSidebar({
   const renderThumbnails = async () => {
     if (!id) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/pdf/${id}/file`);
+      const response = await fetch(`https://edit-o-pdf.onrender.com/api/pdf/${id}/file`);
       const blob = await response.blob();
       const arrayBuffer = await blob.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
